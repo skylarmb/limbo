@@ -13,6 +13,7 @@ export const REPOS = (process.env.LIMBO_REPOS ?? "")
 // PRs with any other status sink to the bottom of the section and are dimmed.
 export type SectionConfig = { title: string; query: string; focus?: Status };
 export const SECTIONS: SectionConfig[] = [
+	{ title: "My PRs", query: "author:@me" },
 	{ title: "Involves me", query: "involves:@me" },
 	{
 		title: "Review requested",
