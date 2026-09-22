@@ -44,6 +44,12 @@ export function App() {
 	]);
 	// Line index of each PR, so the cursor can skip headers.
 	const prLines = lines.flatMap((line, i) => (line.kind === "pr" ? [i] : []));
+	// Size the repo and number columns to their longest value, plus a space.
+	const prs = sections.flatMap((section) => section.prs);
+	const widths = {
+		repo: Math.max(0, ...prs.map((pr) => repoName(pr).length)) + 1,
+		number: Math.max(0, ...prs.map((pr) => `#${pr.number}`.length)) + 1,
+	};
 	// Clamp in case a refresh shrank the list.
 	const selected = Math.min(cursor, prLines.length - 1);
 	const cursorLine = prLines[selected] ?? 0;
@@ -82,6 +88,7 @@ export function App() {
 					<Row
 						key={line.pr.id}
 						line={line}
+						widths={widths}
 						selected={top.current + i === cursorLine}
 					/>
 				),
@@ -92,13 +99,20 @@ export function App() {
 	);
 }
 
-// One PR row: cursor gutter, colored status, then repo#number title @author.
-// Repo and author are dim so status and title stand out. Muted rows are all dim.
+// Repo name without the owner, to keep the column narrow.
+function repoName(pr: PullRequest): string {
+	return pr.repository.nameWithOwner.split("/")[1] ?? "";
+}
+
+// One PR row: cursor gutter, colored status, repo, #number, then title @author.
+// Repo, number, and author are dim so status and title stand out. Muted rows are all dim.
 function Row({
 	line: { pr, status, muted },
+	widths,
 	selected,
 }: {
 	line: Extract<Line, { kind: "pr" }>;
+	widths: { repo: number; number: number };
 	selected: boolean;
 }) {
 	return (
@@ -116,10 +130,17 @@ function Row({
 					{status}
 				</Text>
 			</Box>
+			<Box width={widths.repo} flexShrink={0}>
+				<Text dimColor bold={selected} wrap="truncate">
+					{repoName(pr)}
+				</Text>
+			</Box>
+			<Box width={widths.number} flexShrink={0}>
+				<Text dimColor bold={selected}>
+					#{pr.number}
+				</Text>
+			</Box>
 			<Text wrap="truncate" dimColor={muted} bold={selected}>
-				<Text dimColor>
-					{pr.repository.nameWithOwner}#{pr.number}
-				</Text>{" "}
 				{pr.title} <Text dimColor>@{pr.author?.login ?? "ghost"}</Text>
 			</Text>
 		</Box>
