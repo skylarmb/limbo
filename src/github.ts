@@ -11,13 +11,15 @@ export type PullRequest = {
 	author: { login: string } | null;
 	repository: { nameWithOwner: string };
 	state: "OPEN" | "CLOSED" | "MERGED";
-	isDraft: boolean;
+	// The fields below are fetched only for open PRs (OPEN_FIELDS). Closed PRs
+	// do not use them, and reviewDecision and commits are slow to resolve.
+	isDraft?: boolean;
 	// UNKNOWN while GitHub computes it lazily.
-	mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+	mergeable?: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
 	// null when the repo has no required reviews.
-	reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
+	reviewDecision?: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
 	// Combined CI state of the head commit; rollup is null when no checks ran.
-	commits: {
+	commits?: {
 		nodes: { commit: { statusCheckRollup: { state: string } | null } }[];
 	};
 };
@@ -48,8 +50,8 @@ async function graphql<T>(query: string): Promise<T> {
 	return json.data;
 }
 
-const PR_FIELDS = `id number title url createdAt author { login } repository { nameWithOwner }
-	state isDraft mergeable reviewDecision commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }`;
+const PR_FIELDS = `id number title url createdAt author { login } repository { nameWithOwner } state`;
+const OPEN_FIELDS = `isDraft mergeable reviewDecision commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }`;
 
 export type Section = SectionConfig & { prs: PullRequest[] };
 
@@ -71,10 +73,12 @@ export function unfocused(section: SectionConfig, pr: PullRequest): boolean {
 export async function fetchSections(state: PrState): Promise<Section[]> {
 	if (REPOS.length === 0) throw new Error("LIMBO_REPOS is not set");
 	const alias = (i: number, j: number) => `s${i}_${j}`;
+	// Closed PRs only need merged vs closed, so skip the open-only fields.
+	const fields = state === "open" ? `${PR_FIELDS} ${OPEN_FIELDS}` : PR_FIELDS;
 	const query = `{ ${SECTIONS.flatMap((section, i) =>
 		REPOS.map(
 			(repo, j) =>
-				`${alias(i, j)}: search(query: ${JSON.stringify(`is:pr is:${state} repo:${repo} sort:created-desc ${section.query}`)}, type: ISSUE, first: ${LIMIT}) { nodes { ... on PullRequest { ${PR_FIELDS} } } }`,
+				`${alias(i, j)}: search(query: ${JSON.stringify(`is:pr is:${state} repo:${repo} sort:created-desc ${section.query}`)}, type: ISSUE, first: ${LIMIT}) { nodes { ... on PullRequest { ${fields} } } }`,
 		),
 	).join("\n")} }`;
 
