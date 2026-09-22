@@ -1,4 +1,5 @@
 import { Box, Text, useApp, useInput } from "ink";
+import { statusOf } from "./status";
 import { usePullRequests } from "./usePullRequests";
 
 export function App() {
@@ -16,10 +17,16 @@ export function App() {
 			{error && <Text>error: {error}</Text>}
 			{loading && prs.length === 0 && <Text>loading…</Text>}
 			{prs.map((pr) => (
-				<Text key={pr.id}>
-					{pr.repository.nameWithOwner}#{pr.number} {pr.title} @
-					{pr.author?.login ?? "ghost"}
-				</Text>
+				<Box key={pr.id}>
+					{/* Fixed width so titles line up; fits the longest status. */}
+					<Box width={18} flexShrink={0}>
+						<Text>{statusOf(pr)}</Text>
+					</Box>
+					<Text>
+						{pr.repository.nameWithOwner}#{pr.number} {pr.title} @
+						{pr.author?.login ?? "ghost"}
+					</Text>
+				</Box>
 			))}
 		</Box>
 	);
