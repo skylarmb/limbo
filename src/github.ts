@@ -52,6 +52,7 @@ export type Section = { title: string; prs: PullRequest[] };
 // Fetch every section × repo search in one request. Each section is deduped
 // against the ones above it and sorted newest first.
 export async function fetchSections(): Promise<Section[]> {
+	if (REPOS.length === 0) throw new Error("LIMBO_REPOS is not set");
 	const alias = (i: number, j: number) => `s${i}_${j}`;
 	const query = `{ ${SECTIONS.flatMap((section, i) =>
 		REPOS.map(

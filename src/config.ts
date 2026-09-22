@@ -1,8 +1,9 @@
-// Repos to watch. Each is searched with every qualifier in QUERIES.
-export const REPOS = [
-	"owner/repo-a",
-	"owner/repo-b",
-];
+// Repos to watch, from LIMBO_REPOS as comma-separated owner/name pairs.
+// Each is searched with the qualifier of every section.
+export const REPOS = (process.env.LIMBO_REPOS ?? "")
+	.split(",")
+	.map((repo) => repo.trim())
+	.filter(Boolean);
 
 // Dashboard sections, top to bottom. Each runs its search qualifier against
 // every repo. GraphQL search has no OR, so each is its own aliased search.
