@@ -1,6 +1,6 @@
 import { Box, Text, useApp, useInput, useWindowSize } from "ink";
 import { useRef, useState } from "react";
-import { type PullRequest, unfocused } from "./github";
+import { type PrState, type PullRequest, unfocused } from "./github";
 import { type Status, statusOf } from "./status";
 import { useSections } from "./useSections";
 
@@ -20,12 +20,15 @@ const STATUS_COLOR: Record<Status, string | undefined> = {
 	"ci running": "yellow",
 	"awaiting review": "cyan",
 	draft: undefined,
+	merged: "magenta",
+	closed: "gray",
 };
 
 export function App() {
 	const { exit } = useApp();
 	const { rows, columns } = useWindowSize();
-	const { sections, error, loading, refresh } = useSections();
+	const [state, setState] = useState<PrState>("open");
+	const { sections, error, loading, refresh } = useSections(state);
 	const [cursor, setCursor] = useState(0);
 	const top = useRef(0);
 
@@ -35,7 +38,8 @@ export function App() {
 		.flatMap((section) => [
 			{
 				kind: "header" as const,
-				title: section.title,
+				// Label the closed view so it cannot be mistaken for open PRs.
+				title: state === "closed" ? `${section.title}, closed` : section.title,
 				count: section.prs.length,
 			},
 			...section.prs.map((pr) => {
@@ -67,7 +71,7 @@ export function App() {
 	if (reveal < top.current) top.current = reveal;
 	if (cursorLine >= top.current + height) top.current = cursorLine - height + 1;
 
-	// j/k = move, o = open in browser, r = refresh, q = quit.
+	// j/k = move, o = open in browser, c = toggle open/closed, r = refresh, q = quit.
 	useInput((input) => {
 		if (input === "j") setCursor(Math.min(selected + 1, prLines.length - 1));
 		if (input === "k") setCursor(Math.max(selected - 1, 0));
@@ -75,6 +79,11 @@ export function App() {
 			const line = lines[cursorLine];
 			// macOS `open`. Other platforms can come later.
 			if (line?.kind === "pr") Bun.spawn(["open", line.pr.url]);
+		}
+		if (input === "c") {
+			setState(state === "open" ? "closed" : "open");
+			setCursor(0);
+			top.current = 0;
 		}
 		if (input === "r") refresh();
 		if (input === "q") exit();

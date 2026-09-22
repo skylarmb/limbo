@@ -22,5 +22,9 @@ export const SECTIONS: SectionConfig[] = [
 	},
 ];
 
+// Max PRs per repo per section. The query sorts newest first, so the limit
+// keeps the newest. Large result sets with CI fields time out on GitHub.
+export const LIMIT = 25;
+
 // How often to re-fetch PRs.
 export const REFRESH_MS = 60_000;

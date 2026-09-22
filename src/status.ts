@@ -1,6 +1,8 @@
 import type { PullRequest } from "./github";
 
 export type Status =
+	| "merged"
+	| "closed"
 	| "draft"
 	| "ci failing"
 	| "ci running"
@@ -12,6 +14,8 @@ export type Status =
 // Derive one status per PR. The first match wins, so blockers come before "ready".
 export function statusOf(pr: PullRequest): Status {
 	const ci = pr.commits.nodes[0]?.commit.statusCheckRollup?.state;
+	if (pr.state === "MERGED") return "merged";
+	if (pr.state === "CLOSED") return "closed";
 	if (pr.isDraft) return "draft";
 	if (ci === "FAILURE" || ci === "ERROR") return "ci failing";
 	if (ci === "PENDING" || ci === "EXPECTED") return "ci running";

@@ -15,6 +15,7 @@ function pr(
 		createdAt: "2026-01-01",
 		author: null,
 		repository: { nameWithOwner: "o/r" },
+		state: "OPEN",
 		isDraft: false,
 		mergeable: "MERGEABLE",
 		reviewDecision: "APPROVED",
@@ -27,6 +28,8 @@ function pr(
 
 test("statusOf", () => {
 	expect(statusOf(pr())).toBe("ready");
+	expect(statusOf(pr({ state: "MERGED" }, "FAILURE"))).toBe("merged");
+	expect(statusOf(pr({ state: "CLOSED", isDraft: true }))).toBe("closed");
 	expect(statusOf(pr({}, null))).toBe("ready");
 	expect(statusOf(pr({ isDraft: true }, "FAILURE"))).toBe("draft");
 	expect(statusOf(pr({}, "FAILURE"))).toBe("ci failing");

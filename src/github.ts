@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import { REPOS, SECTIONS, type SectionConfig } from "./config";
+import { LIMIT, REPOS, SECTIONS, type SectionConfig } from "./config";
 import { statusOf } from "./status";
 
 export type PullRequest = {
@@ -10,6 +10,7 @@ export type PullRequest = {
 	createdAt: string;
 	author: { login: string } | null;
 	repository: { nameWithOwner: string };
+	state: "OPEN" | "CLOSED" | "MERGED";
 	isDraft: boolean;
 	// UNKNOWN while GitHub computes it lazily.
 	mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
@@ -35,35 +36,45 @@ async function graphql<T>(query: string): Promise<T> {
 		headers: { Authorization: `bearer ${await getToken()}` },
 		body: JSON.stringify({ query }),
 	});
+	// Check the status first: on a timeout GitHub returns an HTML page, not JSON.
+	if (!res.ok) throw new Error(`GitHub API ${res.status}`);
 	const json = (await res.json()) as {
 		data?: T;
 		errors?: { message: string }[];
 	};
 	if (json.errors?.length)
 		throw new Error(json.errors.map((e) => e.message).join("; "));
-	if (!res.ok || !json.data) throw new Error(`GitHub API ${res.status}`);
+	if (!json.data) throw new Error("GitHub API returned no data");
 	return json.data;
 }
 
 const PR_FIELDS = `id number title url createdAt author { login } repository { nameWithOwner }
-	isDraft mergeable reviewDecision commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }`;
+	state isDraft mergeable reviewDecision commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }`;
 
 export type Section = SectionConfig & { prs: PullRequest[] };
 
-// True if the PR is outside the section focus, so it sinks and dims.
+// Which PRs to list, as in GitHub's is:open / is:closed. Closed includes merged.
+export type PrState = "open" | "closed";
+
+// True if an open PR is outside the section focus, so it sinks and dims.
+// Focus is ignored for closed PRs, which have nothing left to act on.
 export function unfocused(section: SectionConfig, pr: PullRequest): boolean {
-	return section.focus !== undefined && statusOf(pr) !== section.focus;
+	return (
+		pr.state === "OPEN" &&
+		section.focus !== undefined &&
+		statusOf(pr) !== section.focus
+	);
 }
 
 // Fetch every section × repo search in one request. Each section is deduped
 // against the ones above it and sorted newest first, with unfocused PRs last.
-export async function fetchSections(): Promise<Section[]> {
+export async function fetchSections(state: PrState): Promise<Section[]> {
 	if (REPOS.length === 0) throw new Error("LIMBO_REPOS is not set");
 	const alias = (i: number, j: number) => `s${i}_${j}`;
 	const query = `{ ${SECTIONS.flatMap((section, i) =>
 		REPOS.map(
 			(repo, j) =>
-				`${alias(i, j)}: search(query: ${JSON.stringify(`is:pr is:open repo:${repo} ${section.query}`)}, type: ISSUE, first: 100) { nodes { ... on PullRequest { ${PR_FIELDS} } } }`,
+				`${alias(i, j)}: search(query: ${JSON.stringify(`is:pr is:${state} repo:${repo} sort:created-desc ${section.query}`)}, type: ISSUE, first: ${LIMIT}) { nodes { ... on PullRequest { ${PR_FIELDS} } } }`,
 		),
 	).join("\n")} }`;
 
