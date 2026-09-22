@@ -105,7 +105,9 @@ function repoName(pr: PullRequest): string {
 }
 
 // One PR row: cursor gutter, colored status, repo, #number, then title @author.
-// Repo, number, and author are dim so status and title stand out. Muted rows are all dim.
+// Repo, number, and author are gray so status and title stand out. Muted rows
+// are all gray. Gray is ANSI bright black, which terminals render more reliably
+// than the dim attribute.
 function Row({
 	line: { pr, status, muted },
 	widths,
@@ -122,26 +124,22 @@ function Row({
 			</Box>
 			{/* Fixed width so titles line up; fits the longest status. */}
 			<Box width={18} flexShrink={0}>
-				<Text
-					color={muted ? undefined : STATUS_COLOR[status]}
-					dimColor={muted}
-					bold={selected}
-				>
+				<Text color={muted ? "gray" : STATUS_COLOR[status]} bold={selected}>
 					{status}
 				</Text>
 			</Box>
 			<Box width={widths.repo} flexShrink={0}>
-				<Text dimColor bold={selected} wrap="truncate">
+				<Text color="gray" bold={selected} wrap="truncate">
 					{repoName(pr)}
 				</Text>
 			</Box>
 			<Box width={widths.number} flexShrink={0}>
-				<Text dimColor bold={selected}>
+				<Text color="gray" bold={selected}>
 					#{pr.number}
 				</Text>
 			</Box>
-			<Text wrap="truncate" dimColor={muted} bold={selected}>
-				{pr.title} <Text dimColor>@{pr.author?.login ?? "ghost"}</Text>
+			<Text wrap="truncate" color={muted ? "gray" : undefined} bold={selected}>
+				{pr.title} <Text color="gray">@{pr.author?.login ?? "ghost"}</Text>
 			</Text>
 		</Box>
 	);
