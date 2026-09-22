@@ -1,0 +1,22 @@
+{
+	"name": "limbo",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun --watch src/main.tsx",
+		"start": "bun src/main.tsx",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check .",
+		"check": "bun run typecheck && bun run lint"
+	},
+	"dependencies": {
+		"ink": "^7.1.1",
+		"react": "^19.3.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.14",
+		"@types/bun": "^1.4.2",
+		"@types/react": "^19.3.0",
+		"typescript": "^7.0.2"
+	}
+}
