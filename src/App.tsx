@@ -29,19 +29,22 @@ export function App() {
 	const [cursor, setCursor] = useState(0);
 	const top = useRef(0);
 
-	const lines: Line[] = sections.flatMap((section) => [
-		{
-			kind: "header" as const,
-			title: section.title,
-			count: section.prs.length,
-		},
-		...section.prs.map((pr) => {
-			const status = statusOf(pr);
-			// Drafts and PRs outside the section focus get the lowest priority.
-			const muted = status === "draft" || unfocused(section, pr);
-			return { kind: "pr" as const, pr, status, muted };
-		}),
-	]);
+	// Empty sections are skipped entirely, header included.
+	const lines: Line[] = sections
+		.filter((section) => section.prs.length > 0)
+		.flatMap((section) => [
+			{
+				kind: "header" as const,
+				title: section.title,
+				count: section.prs.length,
+			},
+			...section.prs.map((pr) => {
+				const status = statusOf(pr);
+				// Drafts and PRs outside the section focus get the lowest priority.
+				const muted = status === "draft" || unfocused(section, pr);
+				return { kind: "pr" as const, pr, status, muted };
+			}),
+		]);
 	// Line index of each PR, so the cursor can skip headers.
 	const prLines = lines.flatMap((line, i) => (line.kind === "pr" ? [i] : []));
 	// Size the repo and number columns to their longest value, plus a space.
