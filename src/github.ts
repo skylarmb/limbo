@@ -1,5 +1,6 @@
 import { $ } from "bun";
-import { REPOS, SECTIONS } from "./config";
+import { REPOS, SECTIONS, type SectionConfig } from "./config";
+import { statusOf } from "./status";
 
 export type PullRequest = {
 	id: string;
@@ -47,10 +48,15 @@ async function graphql<T>(query: string): Promise<T> {
 const PR_FIELDS = `id number title url createdAt author { login } repository { nameWithOwner }
 	isDraft mergeable reviewDecision commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }`;
 
-export type Section = { title: string; prs: PullRequest[] };
+export type Section = SectionConfig & { prs: PullRequest[] };
+
+// True if the PR is outside the section focus, so it sinks and dims.
+export function unfocused(section: SectionConfig, pr: PullRequest): boolean {
+	return section.focus !== undefined && statusOf(pr) !== section.focus;
+}
 
 // Fetch every section × repo search in one request. Each section is deduped
-// against the ones above it and sorted newest first.
+// against the ones above it and sorted newest first, with unfocused PRs last.
 export async function fetchSections(): Promise<Section[]> {
 	if (REPOS.length === 0) throw new Error("LIMBO_REPOS is not set");
 	const alias = (i: number, j: number) => `s${i}_${j}`;
@@ -63,7 +69,7 @@ export async function fetchSections(): Promise<Section[]> {
 
 	const data = await graphql<Record<string, { nodes: PullRequest[] }>>(query);
 	const seen = new Set<string>();
-	return SECTIONS.map(({ title }, i) => {
+	return SECTIONS.map((section, i) => {
 		const prs = REPOS.flatMap((_, j) => data[alias(i, j)]?.nodes ?? []).filter(
 			(pr) => {
 				if (seen.has(pr.id)) return false;
@@ -71,7 +77,11 @@ export async function fetchSections(): Promise<Section[]> {
 				return true;
 			},
 		);
-		prs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-		return { title, prs };
+		prs.sort(
+			(a, b) =>
+				Number(unfocused(section, a)) - Number(unfocused(section, b)) ||
+				b.createdAt.localeCompare(a.createdAt),
+		);
+		return { ...section, prs };
 	});
 }
