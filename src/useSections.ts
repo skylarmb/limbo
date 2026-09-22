@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { REFRESH_MS } from "./config";
-import { fetchPullRequests, type PullRequest } from "./github";
+import { fetchSections, type Section } from "./github";
 
-// Loads PRs on mount, polls every REFRESH_MS, and exposes a manual refresh.
-export function usePullRequests() {
-	const [prs, setPrs] = useState<PullRequest[]>([]);
+// Loads sections on mount, polls every REFRESH_MS, and exposes a manual refresh.
+export function useSections() {
+	const [sections, setSections] = useState<Section[]>([]);
 	const [error, setError] = useState<string>();
 	const [loading, setLoading] = useState(true);
 
 	const refresh = useCallback(async () => {
 		setLoading(true);
 		try {
-			setPrs(await fetchPullRequests());
+			setSections(await fetchSections());
 			setError(undefined);
 		} catch (e) {
 			setError(e instanceof Error ? e.message : String(e));
@@ -26,5 +26,5 @@ export function usePullRequests() {
 		return () => clearInterval(timer);
 	}, [refresh]);
 
-	return { prs, error, loading, refresh };
+	return { sections, error, loading, refresh };
 }

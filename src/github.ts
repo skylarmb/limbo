@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import { QUERIES, REPOS } from "./config";
+import { REPOS, SECTIONS } from "./config";
 
 export type PullRequest = {
 	id: string;
@@ -47,23 +47,30 @@ async function graphql<T>(query: string): Promise<T> {
 const PR_FIELDS = `id number title url createdAt author { login } repository { nameWithOwner }
 	isDraft mergeable reviewDecision commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }`;
 
-// Fetch open PRs for every repo × qualifier in one request, deduped and newest first.
-export async function fetchPullRequests(): Promise<PullRequest[]> {
-	const searches = REPOS.flatMap((repo) =>
-		QUERIES.map((q) => `is:pr is:open repo:${repo} ${q}`),
-	);
-	const query = `{ ${searches
-		.map(
-			(q, i) =>
-				`s${i}: search(query: ${JSON.stringify(q)}, type: ISSUE, first: 100) { nodes { ... on PullRequest { ${PR_FIELDS} } } }`,
-		)
-		.join("\n")} }`;
+export type Section = { title: string; prs: PullRequest[] };
+
+// Fetch every section × repo search in one request. Each section is deduped
+// against the ones above it and sorted newest first.
+export async function fetchSections(): Promise<Section[]> {
+	const alias = (i: number, j: number) => `s${i}_${j}`;
+	const query = `{ ${SECTIONS.flatMap((section, i) =>
+		REPOS.map(
+			(repo, j) =>
+				`${alias(i, j)}: search(query: ${JSON.stringify(`is:pr is:open repo:${repo} ${section.query}`)}, type: ISSUE, first: 100) { nodes { ... on PullRequest { ${PR_FIELDS} } } }`,
+		),
+	).join("\n")} }`;
 
 	const data = await graphql<Record<string, { nodes: PullRequest[] }>>(query);
-	const byId = new Map<string, PullRequest>();
-	for (const { nodes } of Object.values(data))
-		for (const pr of nodes) byId.set(pr.id, pr);
-	return [...byId.values()].sort((a, b) =>
-		b.createdAt.localeCompare(a.createdAt),
-	);
+	const seen = new Set<string>();
+	return SECTIONS.map(({ title }, i) => {
+		const prs = REPOS.flatMap((_, j) => data[alias(i, j)]?.nodes ?? []).filter(
+			(pr) => {
+				if (seen.has(pr.id)) return false;
+				seen.add(pr.id);
+				return true;
+			},
+		);
+		prs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+		return { title, prs };
+	});
 }
