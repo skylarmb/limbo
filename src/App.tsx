@@ -31,6 +31,10 @@ export function App() {
 	const { sections, error, loading, refresh } = useSections(state);
 	const [cursor, setCursor] = useState(0);
 	const top = useRef(0);
+	// Waiting for Enter or q to confirm quitting.
+	const [confirmQuit, setConfirmQuit] = useState(false);
+	// One-shot footer message, such as "copied <url>". Cleared on the next key.
+	const [notice, setNotice] = useState<string>();
 
 	// Empty sections are skipped entirely, header included.
 	const lines: Line[] = sections
@@ -71,14 +75,26 @@ export function App() {
 	if (reveal < top.current) top.current = reveal;
 	if (cursorLine >= top.current + height) top.current = cursorLine - height + 1;
 
-	// j/k = move, o = open in browser, c = toggle open/closed, r = refresh, q = quit.
-	useInput((input) => {
+	const current = lines[cursorLine];
+	const selectedPr = current?.kind === "pr" ? current.pr : undefined;
+
+	// j/k = move, o = open in browser, y = copy URL, c = toggle open/closed,
+	// r = refresh, q = quit (asks to confirm).
+	useInput((input, key) => {
+		setNotice(undefined);
+		// While confirming, Enter or q quits and any other key cancels.
+		if (confirmQuit) {
+			if (key.return || input === "q") exit();
+			setConfirmQuit(false);
+			return;
+		}
 		if (input === "j") setCursor(Math.min(selected + 1, prLines.length - 1));
 		if (input === "k") setCursor(Math.max(selected - 1, 0));
-		if (input === "o") {
-			const line = lines[cursorLine];
-			// macOS `open`. Other platforms can come later.
-			if (line?.kind === "pr") Bun.spawn(["open", line.pr.url]);
+		// macOS `open` and `pbcopy`. Other platforms can come later.
+		if (input === "o" && selectedPr) Bun.spawn(["open", selectedPr.url]);
+		if (input === "y" && selectedPr) {
+			Bun.spawn(["pbcopy"], { stdin: new Blob([selectedPr.url]) });
+			setNotice(`copied ${selectedPr.url}`);
 		}
 		if (input === "c") {
 			setState(state === "open" ? "closed" : "open");
@@ -86,8 +102,17 @@ export function App() {
 			top.current = 0;
 		}
 		if (input === "r") refresh();
-		if (input === "q") exit();
+		if (input === "q") setConfirmQuit(true);
 	});
+
+	// Footer text, highest priority first.
+	function footer(): string {
+		if (confirmQuit) return "quit? enter or q to confirm";
+		if (notice) return notice;
+		if (error) return `error: ${error}`;
+		if (loading && lines.length === 0) return "loading…";
+		return "";
+	}
 
 	return (
 		<Box flexDirection="column">
@@ -105,8 +130,8 @@ export function App() {
 					/>
 				),
 			)}
-			{error && <Text wrap="truncate">error: {error}</Text>}
-			{loading && lines.length === 0 && <Text>loading…</Text>}
+			{/* One line at most, so output stays below the terminal height. */}
+			<Text wrap="truncate">{footer()}</Text>
 		</Box>
 	);
 }
