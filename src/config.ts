@@ -1,5 +1,8 @@
 // Repos to watch. Each is searched with every qualifier in QUERIES.
-export const REPOS = ["owner/repo-b"];
+export const REPOS = [
+	"owner/repo-a",
+	"owner/repo-b",
+];
 
 // Dashboard sections, top to bottom. Each runs its search qualifier against
 // every repo. GraphQL search has no OR, so each is its own aliased search.
