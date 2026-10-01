@@ -97,6 +97,6 @@ export async function fetchSections(state: PrState): Promise<Section[]> {
 				Number(unfocused(section, a)) - Number(unfocused(section, b)) ||
 				b.createdAt.localeCompare(a.createdAt),
 		);
-		return { ...section, prs };
+		return { ...section, prs: prs.slice(0, LIMIT) };
 	});
 }
