@@ -9,6 +9,8 @@ you opened, the PRs that involve you, and the PRs that wait for your review,
 across a set of repos. Each PR shows one status, so you can see which PRs need
 you.
 
+<img width="1062" height="258" alt="Screenshot 2026-10-22 at 9 35 50 AM" src="https://github.com/user-attachments/assets/3d4108a3-b78e-4fa1-833b-72b9f0391fbd" />
+
 ## Requirements
 
 - [Bun](https://bun.sh).
