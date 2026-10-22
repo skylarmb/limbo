@@ -58,6 +58,9 @@ export type Section = SectionConfig & { prs: PullRequest[] };
 // Which PRs to list, as in GitHub's is:open / is:closed. Closed includes merged.
 export type PrState = "open" | "closed";
 
+// The source of sections for the TUI: fetchSections, or static demo data.
+export type FetchSections = (state: PrState) => Promise<Section[]>;
+
 // True if an open PR is outside the section focus, so it sinks and dims.
 // Focus is ignored for closed PRs, which have nothing left to act on.
 export function unfocused(section: SectionConfig, pr: PullRequest): boolean {
