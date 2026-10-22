@@ -9,6 +9,24 @@ you opened, the PRs that involve you, and the PRs that wait for your review,
 across a set of repos. Each PR shows one status, so you can see which PRs need
 you.
 
+This example shows the open PRs view with example repos. In the terminal,
+each status has a color.
+
+```text
+── My PRs (3) ──────────────────────────────────────────────────────────────────────────────────────
+> ready             api-server #2418 Add cursor pagination to the list endpoints @you
+  ci running        web-app    #1187 Cache the dashboard queries for 30 seconds @you
+  draft             cli        #342  Add a --json flag to the status command @you
+── Involves me (2) ─────────────────────────────────────────────────────────────────────────────────
+  changes requested api-server #2409 Retry webhook deliveries on 5xx responses @alex
+  ci failing        web-app    #1179 Move the settings page to the new form library @sam
+── Review requested (4) ────────────────────────────────────────────────────────────────────────────
+  awaiting review   api-server #2421 Add an index for audit log queries @jordan
+  awaiting review   web-app    #1190 chore(deps): bump the react group across 1 directory with 2 up…
+  awaiting review   docs       #455  Document the config file format @taylor
+  conflicts         cli        #338  Rename the --repo flag to --repos @riley
+```
+
 ## Requirements
 
 - [Bun](https://bun.sh).
