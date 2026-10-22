@@ -1,5 +1,9 @@
 # Limbo
 
+> [!NOTE]
+> Limbo is a work in progress. Features, keys, and configuration can change
+> without notice.
+
 A terminal dashboard for your GitHub pull requests. Limbo lists the PRs that
 you opened, the PRs that involve you, and the PRs that wait for your review,
 across a set of repos. Each PR shows one status, so you can see which PRs need
