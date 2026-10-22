@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { REFRESH_MS } from "./config";
-import { fetchSections, type PrState, type Section } from "./github";
+import type { FetchSections, PrState, Section } from "./github";
 
 // Loads sections for the given PR state, polls every REFRESH_MS, and exposes a
 // manual refresh. Results are cached per state, so toggling back to a state
 // shows its cached sections and fetches only if it never loaded.
-export function useSections(state: PrState) {
+// fetchSections is a parameter so the demo can pass static data.
+export function useSections(state: PrState, fetchSections: FetchSections) {
 	const [cache, setCache] = useState<Partial<Record<PrState, Section[]>>>({});
 	const [error, setError] = useState<string>();
 	const [loading, setLoading] = useState(true);
@@ -26,7 +27,7 @@ export function useSections(state: PrState) {
 		} finally {
 			setLoading(false);
 		}
-	}, [state]);
+	}, [state, fetchSections]);
 
 	useEffect(() => {
 		if (!loaded.current.has(state)) refresh();

@@ -1,6 +1,11 @@
 import { Box, Text, useApp, useInput, useWindowSize } from "ink";
 import { useRef, useState } from "react";
-import { type PrState, type PullRequest, unfocused } from "./github";
+import {
+	type FetchSections,
+	type PrState,
+	type PullRequest,
+	unfocused,
+} from "./github";
 import { type Status, statusOf } from "./status";
 import { useSections } from "./useSections";
 
@@ -24,11 +29,14 @@ const STATUS_COLOR: Record<Status, string | undefined> = {
 	closed: "gray",
 };
 
-export function App() {
+export function App({ fetchSections }: { fetchSections: FetchSections }) {
 	const { exit } = useApp();
 	const { rows, columns } = useWindowSize();
 	const [state, setState] = useState<PrState>("open");
-	const { sections, error, loading, refresh } = useSections(state);
+	const { sections, error, loading, refresh } = useSections(
+		state,
+		fetchSections,
+	);
 	const [cursor, setCursor] = useState(0);
 	const top = useRef(0);
 	// Waiting for Enter or q to confirm quitting.
