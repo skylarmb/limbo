@@ -1,5 +1,7 @@
 {
 	"name": "limbo",
+	"description": "A terminal dashboard for your GitHub pull requests",
+	"license": "GPL-3.0-or-later",
 	"private": true,
 	"type": "module",
 	"scripts": {
